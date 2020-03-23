@@ -2,19 +2,33 @@ import json
 import jose
 import requests
 import time
+import os
+from http import HTTPStatus
 from jose import jwt, jwk
 from jose.utils import base64url_decode
 
-def lambda_handler(event, context):
-    print(event)
-    token = -1
-    if 'headers' in event :
-        if 'authorization' in event['headers'] :
-            token = event['headers']['authorization']
+region = os.getenv('REGION')
+user_pool_id = os.getenv('USER_POOL_ID')
+client_ids = os.getenv('CLIENT_ID')
+keys_url = 'https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json'.format(region, user_pool_id)
 
-    print(token)
-    if token == '1':
-        print('Allow')
+def lambda_handler(event, context):
+    print(json.dumps(event))
+
+    token = -1
+    lower_headers = {}
+    if 'headers' in event :
+        for k in event['headers'].keys() :
+            lower_headers[k.lower()] = event['headers'][k]
+
+    if 'authorization' in lower_headers :
+        token = lower_headers['authorization']
+
+    jwt_headers = jwt.get_unverified_headers(token)
+    kid = jwt_headers['kid']
+    res_cognito = requests.get(keys_url)
+
+    if res_cognito.status_code != HTTPStatus.OK:
         return {
             'principalId': 1,
             'policyDocument': {
@@ -22,14 +36,87 @@ def lambda_handler(event, context):
                 'Statement': [
                     {
                         'Action': '*',
-                        'Effect': 'Allow',
+                        'Effect': 'Deny',
+                        'Resource': 'arn:aws:execute-api:*:*:*/*/*/'
+                    }
+                ]
+            }
+        }
+
+    keys = json.loads(res_cognito.text)['keys']
+    key_index = -1
+    for i in range(len(keys)):
+        if kid == keys[i]['kid']:
+            key_index = i
+            break
+    if key_index == -1:
+        return {
+            'principalId': 1,
+            'policyDocument': {
+                'Version': '2012-10-17',
+                'Statement': [
+                    {
+                        'Action': '*',
+                        'Effect': 'Deny',
+                        'Resource': 'arn:aws:execute-api:*:*:*/*/*/'
+                    }
+                ]
+            }
+        }
+
+    public_key = jwk.construct(keys[key_index])
+
+    message = str(token).rsplit('.', 1)[0].encode('utf-8')
+    encoded_signature = str(token).rsplit('.', 1)[1].encode('utf-8')
+
+    decoded_signature = base64url_decode(encoded_signature)
+
+    if not public_key.verify(message, decoded_signature):
+        return {
+            'principalId': 1,
+            'policyDocument': {
+                'Version': '2012-10-17',
+                'Statement': [
+                    {
+                        'Action': '*',
+                        'Effect': 'Deny',
+                        'Resource': 'arn:aws:execute-api:*:*:*/*/*/'
+                    }
+                ]
+            }
+        }
+
+    claims = jwt.get_unverified_claims(token)
+
+    if time.time() > claims['exp']:
+        return {
+            'principalId': 1,
+            'policyDocument': {
+                'Version': '2012-10-17',
+                'Statement': [
+                    {
+                        'Action': '*',
+                        'Effect': 'Deny',
+                        'Resource': 'arn:aws:execute-api:*:*:*/*/*/'
+                    }
+                ]
+            }
+        }
+    if claims['aud'] not in client_ids:
+        return {
+            'principalId': 1,
+            'policyDocument': {
+                'Version': '2012-10-17',
+                'Statement': [
+                    {
+                        'Action': '*',
+                        'Effect': 'Deny',
                         'Resource': 'arn:aws:execute-api:*:*:*/*/*/'
                     }
                 ]
             }
         }
     
-    print('Deny')
     return {
         'principalId': 1,
         'policyDocument': {
@@ -37,7 +124,7 @@ def lambda_handler(event, context):
             'Statement': [
                 {
                     'Action': '*',
-                    'Effect': 'Deny',
+                    'Effect': 'Allow',
                     'Resource': 'arn:aws:execute-api:*:*:*/*/*/'
                 }
             ]
