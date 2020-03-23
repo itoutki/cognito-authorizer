@@ -4,11 +4,17 @@ import requests
 import time
 from jose import jwt, jwk
 from jose.utils import base64url_decode
-Authorization
+
 def lambda_handler(event, context):
-    token = event['headers']['Authorization']
-    
+    print(event)
+    token = -1
+    if 'headers' in event :
+        if 'authorization' in event['headers'] :
+            token = event['headers']['authorization']
+
+    print(token)
     if token == '1':
+        print('Allow')
         return {
             'principalId': 1,
             'policyDocument': {
@@ -22,6 +28,8 @@ def lambda_handler(event, context):
                 ]
             }
         }
+    
+    print('Deny')
     return {
         'principalId': 1,
         'policyDocument': {
@@ -35,3 +43,4 @@ def lambda_handler(event, context):
             ]
         }
     }
+
