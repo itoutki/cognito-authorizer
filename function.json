@@ -1,0 +1,20 @@
+{
+  "Description": "",
+  "Environment": {
+    "Variables": {
+      "CLIENT_ID": "guv22c1gfjmm0ieur8pp1sh6v",
+      "REGION": "ap-northeast-1",
+      "USER_POOL_ID": "ap-northeast-1_lat6XkzBK"
+    }
+  },
+  "FunctionName": "cognito-authorizer",
+  "Handler": "lambda_function.lambda_handler",
+  "MemorySize": 128,
+  "Role": "arn:aws:iam::666423824693:role/service-role/cognito-authorizer-role-fb4q9fqe",
+  "Runtime": "python3.8",
+  "Tags": {},
+  "Timeout": 3,
+  "TracingConfig": {
+    "Mode": "PassThrough"
+  }
+}
