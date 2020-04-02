@@ -37,7 +37,7 @@ def lambda_handler(event, context):
                     {
                         'Action': '*',
                         'Effect': 'Deny',
-                        'Resource': 'arn:aws:execute-api:*:*:*/*/*/'
+                        'Resource': event['methodArn']
                     }
                 ]
             }
@@ -58,7 +58,7 @@ def lambda_handler(event, context):
                     {
                         'Action': '*',
                         'Effect': 'Deny',
-                        'Resource': 'arn:aws:execute-api:*:*:*/*/*/'
+                        'Resource': event['methodArn']
                     }
                 ]
             }
@@ -80,13 +80,14 @@ def lambda_handler(event, context):
                     {
                         'Action': '*',
                         'Effect': 'Deny',
-                        'Resource': 'arn:aws:execute-api:*:*:*/*/*/'
+                        'Resource': event['methodArn']
                     }
                 ]
             }
         }
 
     claims = jwt.get_unverified_claims(token)
+    print(json.dumps(claims))
 
     if time.time() > claims['exp']:
         return {
@@ -97,7 +98,7 @@ def lambda_handler(event, context):
                     {
                         'Action': '*',
                         'Effect': 'Deny',
-                        'Resource': 'arn:aws:execute-api:*:*:*/*/*/'
+                        'Resource': event['methodArn']
                     }
                 ]
             }
@@ -111,21 +112,21 @@ def lambda_handler(event, context):
                     {
                         'Action': '*',
                         'Effect': 'Deny',
-                        'Resource': 'arn:aws:execute-api:*:*:*/*/*/'
+                        'Resource': event['methodArn']
                     }
                 ]
             }
         }
     
     return {
-        'principalId': 1,
+        'principalId': claims['email'],
         'policyDocument': {
             'Version': '2012-10-17',
             'Statement': [
                 {
                     'Action': '*',
                     'Effect': 'Allow',
-                    'Resource': 'arn:aws:execute-api:*:*:*/*/*/'
+                    'Resource': event['methodArn']
                 }
             ]
         }
